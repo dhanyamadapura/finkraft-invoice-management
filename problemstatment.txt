@@ -1,0 +1,62 @@
+Objective (2.5hr) -:
+You are required to build a mini full-stack application that simulates a real-world workflow:
+● Download invoice PDFs from an airline portal using provided passenger data,
+● Extract (parse) key fields from those PDFs, and
+● Display the results in a dashboard with backend APIs.
+This assignment is designed to test your ability to work across frontend, backend, automation,
+and data handling.
+
+Inputs
+● Airline Portal (for invoice download):
+● Passenger Data (JSON):
+This data contains passenger records that must be used to query the airline portal and fetch
+invoice PDFs.
+
+Problem Statement
+1. Invoice Download
+○ For each passenger record in the provided data, attempt to download the
+corresponding invoice PDF from the airline portal.
+○ Save the downloaded PDFs locally.
+○ If an invoice cannot be found, clearly mark that record with a failure status.
+2. Invoice Parsing
+
+○ From the downloaded PDFs, extract key details such as:
+■ Invoice Number
+■ Date
+■ Airline
+■ Amount
+■ GSTIN (if available)
+○ Maintain both the raw PDFs and the extracted structured data.
+3. Backend APIs
+○ Provide APIs that allow the frontend to:
+■ Retrieve the list of invoices and their statuses.
+■ Retrieve a summary view (e.g., airline-wise totals).
+■ (Bonus) Identify high-value invoices above a certain threshold.
+
+4. Frontend Dashboard
+○ Build a responsive UI that allows users to:
+■ View all passenger records with their Download Status and Parse
+Status.
+■ Trigger Download Invoice (PDF fetch) for each record.
+■ Once an invoice is downloaded, trigger Parse Invoice to extract details.
+■ View parsed invoices in a table with the following columns:
+Invoice No | Date | Airline | Amount | GSTIN | Status | Action
+■ Additional features:
+■ Flag for Review (checkbox – UI state only).
+■ Open PDF link if available.
+■ Error badge if a record fails download or parse.
+■ Handle loading, empty, and error states gracefully.
+
+5. User Flow Expected
+○ Initially, each passenger record shows:
+■ Download Status: Pending
+■ Parse Status: Pending
+○ Clicking Download Invoice updates the Download Status (Success / Not Found
+/ Error).
+○ Only if the download succeeds, the Parse Invoice button is enabled.
+○ Parsing updates the Parse Status (Success / Error).
+○ Successfully parsed invoices appear in the main invoices table with all details.
+
+Submission
+All submissions must be made through this Typeform:
+You will be asked to provide you GitHub Repository Link

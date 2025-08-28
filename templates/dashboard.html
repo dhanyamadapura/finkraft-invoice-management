@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finkraft Invoice Management Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-left h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-left p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .company-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(46, 125, 50, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: #2e7d32;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 0 20px 0 80px;
+            opacity: 0.1;
+        }
+
+        .stat-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .stat-card h3 {
+            color: #2c3e50;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .stat-card .value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card .description {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 25px 30px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title h2 {
+            color: #2c3e50;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-refresh {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 18px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        th {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            font-weight: 600;
+            color: #2c3e50;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+            transform: scale(1.01);
+        }
+
+        .passenger-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .passenger-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .passenger-email {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 2px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1976d2;
+        }
+
+        .status-downloaded {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+            color: #2e7d32;
+        }
+
+        .status-parsed {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+            color: #2e7d32;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #c62828;
+        }
+
+        .status-not-found {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            color: #f57c00;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin: 3px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-loading {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            cursor: not-allowed;
+            animation: pulse 1.5s infinite;
+        }
+
+        .high-value {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .loading i {
+            font-size: 2em;
+            margin-bottom: 15px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #c62828;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            color: #7f8c8d;
+        }
+
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.3em;
+        }
+
+        .review-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .review-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .review-checkbox label {
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .pdf-link {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 0.9em;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .pdf-link:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        .toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #2e7d32, #388e3c);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #c62828, #d32f2f);
+        }
+
+        .toast.warning {
+            background: linear-gradient(135deg, #f57c00, #ff9800);
+        }
+
+        .toast-icon {
+            font-size: 1.2em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-container {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 12px 10px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header fade-in">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1><i class="fas fa-file-invoice"></i> Finkraft Invoice Management</h1>
+                    <p>Advanced airline invoice processing and automation system</p>
+                </div>
+                <div class="header-right">
+                    <div class="live-indicator">
+                        <div class="live-dot"></div>
+                        <span>Live System</span>
+                    </div>
+                    <div class="company-logo">F</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-grid">
+            <div class="stat-card slide-in">
+                <div class="stat-icon"><i class="fas fa-download"></i></div>
+                <h3>Total Downloads</h3>
+                <div class="value" id="total-downloads">0/0</div>
+                <div class="description">invoices downloaded</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="download-progress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="stat-card slide-in">
+                <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                <h3>Parsed Invoices</h3>
+                <div class="value" id="parsed-invoices">0</div>
+                <div class="description">successfully parsed</div>
+            </div>
+            <div class="stat-card slide-in">
+                <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+                <h3>Total Amount</h3>
+                <div class="value" id="total-amount">₹0</div>
+                <div class="description">across all invoices</div>
+            </div>
+            <div class="stat-card slide-in">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <h3>High Value</h3>
+                <div class="value" id="high-value">0</div>
+                <div class="description">requires attention</div>
+            </div>
+        </div>
+
+        <!-- Passenger Records Section -->
+        <div class="section fade-in">
+            <div class="section-header">
+                <div class="section-title">
+                    <div class="section-icon"><i class="fas fa-users"></i></div>
+                    <h2>Passenger Records</h2>
+                </div>
+                <div class="section-actions">
+                    <button class="btn-refresh" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="passengers-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-user"></i> Passenger</th>
+                            <th><i class="fas fa-ticket-alt"></i> Booking ID</th>
+                            <th><i class="fas fa-download"></i> Download Status</th>
+                            <th><i class="fas fa-cogs"></i> Parse Status</th>
+                            <th><i class="fas fa-tools"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="passengers-tbody">
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <i class="fas fa-spinner"></i>
+                                <div>Loading passenger data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Parsed Invoices Section -->
+        <div class="section fade-in">
+            <div class="section-header">
+                <div class="section-title">
+                    <div class="section-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <h2>Parsed Invoices</h2>
+                </div>
+                <div class="section-actions">
+                    <button class="btn-refresh" onclick="refreshInvoices()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="invoices-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-hashtag"></i> Invoice No</th>
+                            <th><i class="fas fa-calendar"></i> Date</th>
+                            <th><i class="fas fa-plane"></i> Airline</th>
+                            <th><i class="fas fa-rupee-sign"></i> Amount</th>
+                            <th><i class="fas fa-id-card"></i> GSTIN</th>
+                            <th><i class="fas fa-check-circle"></i> Status</th>
+                            <th><i class="fas fa-tools"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoices-tbody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="fas fa-file-invoice"></i>
+                                <h3>No parsed invoices yet</h3>
+                                <p>Download and parse invoices to see them here</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="toast-message"></div>
+    </div>
+
+    <script>
+        // Global state
+        let passengers = [];
+        let invoices = [];
+        let refreshInterval;
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadPassengers();
+            loadInvoices();
+            
+            // Auto-refresh every 30 seconds
+            refreshInterval = setInterval(() => {
+                loadStats();
+                loadPassengers();
+                loadInvoices();
+            }, 30000);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+
+        // Toast notification system
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const messageEl = toast.querySelector('.toast-message');
+            const iconEl = toast.querySelector('.toast-icon i');
+            
+            messageEl.textContent = message;
+            toast.className = `toast ${type}`;
+            
+            // Set appropriate icon
+            if (type === 'success') {
+                iconEl.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                iconEl.className = 'fas fa-exclamation-circle';
+            } else if (type === 'warning') {
+                iconEl.className = 'fas fa-exclamation-triangle';
+            }
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // Refresh functions
+        function refreshData() {
+            showToast('Refreshing data...', 'success');
+            loadStats();
+            loadPassengers();
+            loadInvoices();
+        }
+
+        function refreshInvoices() {
+            showToast('Refreshing invoices...', 'success');
+            loadInvoices();
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('total-downloads').textContent = stats.total_downloads;
+                document.getElementById('parsed-invoices').textContent = stats.parsed_invoices;
+                document.getElementById('total-amount').textContent = `₹${stats.total_amount.toLocaleString()}`;
+                document.getElementById('high-value').textContent = stats.high_value;
+                
+                // Update progress bar
+                const [downloaded, total] = stats.total_downloads.split('/');
+                const progress = total > 0 ? (downloaded / total) * 100 : 0;
+                document.getElementById('download-progress').style.width = `${progress}%`;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load passengers
+        async function loadPassengers() {
+            try {
+                const response = await fetch('/api/passengers');
+                passengers = await response.json();
+                renderPassengers();
+            } catch (error) {
+                console.error('Error loading passengers:', error);
+                document.getElementById('passengers-tbody').innerHTML = 
+                    '<tr><td colspan="5" class="error"><i class="fas fa-exclamation-circle"></i> Error loading passenger data</td></tr>';
+            }
+        }
+
+        // Render passengers table
+        function renderPassengers() {
+            const tbody = document.getElementById('passengers-tbody');
+            tbody.innerHTML = '';
+
+            if (passengers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><i class="fas fa-users"></i><h3>No passengers found</h3></td></tr>';
+                return;
+            }
+
+            passengers.forEach((passenger, index) => {
+                const row = document.createElement('tr');
+                row.style.animationDelay = `${index * 0.1}s`;
+                row.className = 'fade-in';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="passenger-info">
+                            <div class="passenger-name">${passenger.first_name} ${passenger.last_name}</div>
+                            <div class="passenger-email">${passenger.email}</div>
+                        </div>
+                    </td>
+                    <td><strong>${passenger.booking_id}</strong></td>
+                    <td><span class="status-badge status-${passenger.download_status.toLowerCase().replace(' ', '-')}">${passenger.download_status}</span></td>
+                    <td><span class="status-badge status-${passenger.parse_status.toLowerCase()}">${passenger.parse_status}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="downloadInvoice(${passenger.id})" 
+                                id="download-btn-${passenger.id}"
+                                ${passenger.download_status === 'Downloaded' ? 'disabled' : ''}>
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button class="btn btn-success" onclick="parseInvoice(${passenger.id})" 
+                                id="parse-btn-${passenger.id}"
+                                ${passenger.download_status !== 'Downloaded' ? 'disabled' : ''}>
+                            <i class="fas fa-cogs"></i> Parse
+                        </button>
+                        ${passenger.download_status === 'Downloaded' ? 
+                            `<a href="/pdf/${passenger.id}" target="_blank" class="pdf-link" onclick="return downloadPDF(${passenger.id})"><i class="fas fa-file-pdf"></i> View PDF</a>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Download invoice
+        async function downloadInvoice(passengerId) {
+            const btn = document.getElementById(`download-btn-${passengerId}`);
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+                btn.classList.add('btn-loading');
+                btn.disabled = true;
+
+                const response = await fetch(`/api/download/${passengerId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast('Invoice downloaded successfully!', 'success');
+                    loadPassengers();
+                    loadStats();
+                } else if (result.status === 'not_found') {
+                    showToast('Invoice not found for this passenger', 'warning');
+                    loadPassengers();
+                    loadStats();
+                } else {
+                    showToast('Failed to download invoice', 'error');
+                    loadPassengers();
+                    loadStats();
+                }
+            } catch (error) {
+                console.error('Error downloading invoice:', error);
+                showToast('Network error while downloading', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+                btn.disabled = false;
+            }
+        }
+
+        // Parse invoice
+        async function parseInvoice(passengerId) {
+            const btn = document.getElementById(`parse-btn-${passengerId}`);
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Parsing...';
+                btn.classList.add('btn-loading');
+                btn.disabled = true;
+
+                const response = await fetch(`/api/parse/${passengerId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast('Invoice parsed successfully!', 'success');
+                    loadPassengers();
+                    loadInvoices();
+                    loadStats();
+                } else {
+                    showToast('Failed to parse invoice', 'error');
+                    loadPassengers();
+                    loadStats();
+                }
+            } catch (error) {
+                console.error('Error parsing invoice:', error);
+                showToast('Network error while parsing', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+                btn.disabled = false;
+            }
+        }
+
+        // Load invoices
+        async function loadInvoices() {
+            try {
+                const response = await fetch('/api/invoices');
+                invoices = await response.json();
+                renderInvoices();
+            } catch (error) {
+                console.error('Error loading invoices:', error);
+                document.getElementById('invoices-tbody').innerHTML = 
+                    '<tr><td colspan="7" class="error"><i class="fas fa-exclamation-circle"></i> Error loading invoice data</td></tr>';
+            }
+        }
+
+        // Render invoices table
+        function renderInvoices() {
+            const tbody = document.getElementById('invoices-tbody');
+            tbody.innerHTML = '';
+
+            if (invoices.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-file-invoice"></i>
+                            <h3>No parsed invoices yet</h3>
+                            <p>Download and parse invoices to see them here</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            invoices.forEach((invoice, index) => {
+                const isHighValue = invoice.amount > 20000;
+                const row = document.createElement('tr');
+                row.style.animationDelay = `${index * 0.1}s`;
+                row.className = 'fade-in';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="passenger-info">
+                            <div class="passenger-name">${invoice.invoice_number}</div>
+                            <div class="passenger-email">${invoice.passenger_name}</div>
+                        </div>
+                        ${isHighValue ? '<span class="high-value"><i class="fas fa-exclamation-triangle"></i> High Value</span>' : ''}
+                    </td>
+                    <td><strong>${invoice.date}</strong></td>
+                    <td><i class="fas fa-plane"></i> ${invoice.airline}</td>
+                    <td><strong>₹${invoice.amount.toLocaleString()}</strong></td>
+                    <td><code>${invoice.gstin}</code></td>
+                    <td><span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span></td>
+                    <td>
+                        <div class="review-checkbox">
+                            <input type="checkbox" id="review-${invoice.id}" onchange="toggleReview(${invoice.id}, this.checked)">
+                            <label for="review-${invoice.id}"><i class="fas fa-eye"></i> Review</label>
+                        </div>
+                        <a href="/pdf/${invoice.passenger_id}" target="_blank" class="pdf-link" onclick="return downloadPDF(${invoice.passenger_id})"><i class="fas fa-file-pdf"></i> View PDF</a>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Toggle review status
+        async function toggleReview(invoiceId, reviewed) {
+            try {
+                const response = await fetch(`/api/review/${invoiceId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reviewed: reviewed })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(result.message, 'success');
+                }
+            } catch (error) {
+                console.error('Error toggling review:', error);
+                showToast('Error updating review status', 'error');
+            }
+        }
+
+        // Download PDF function
+        function downloadPDF(passengerId) {
+            try {
+                // Create a hidden link and trigger download
+                const link = document.createElement('a');
+                link.href = `/pdf/${passengerId}`;
+                link.download = `invoice_${passengerId}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('PDF download started', 'success');
+                return false; // Prevent default link behavior
+            } catch (error) {
+                console.error('Error downloading PDF:', error);
+                showToast('Error downloading PDF', 'error');
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>

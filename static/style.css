@@ -1,0 +1,7 @@
+/* Additional custom styles can be added here */
+.custom-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}

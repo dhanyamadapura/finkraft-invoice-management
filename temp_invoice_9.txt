@@ -1,0 +1,14 @@
+
+    INVOICE DOCUMENT
+    ================
+    
+    Passenger ID: 9
+    Invoice Number: INV-2024-009
+    Date: 2025-08-28
+    Airline: Thai Airways
+    Amount: ₹24000
+    
+    This is a sample invoice for demonstration purposes.
+    In a real application, this would be the actual PDF
+    downloaded from the airline portal.
+    

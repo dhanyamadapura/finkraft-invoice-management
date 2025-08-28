@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file, abort
 import json
 import os
 import csv
@@ -85,6 +85,35 @@ def load_passenger_data():
     conn.commit()
     conn.close()
 
+# Link existing PDFs to passengers
+def link_existing_pdfs():
+    conn = sqlite3.connect('invoices.db')
+    cursor = conn.cursor()
+    
+    # Get all passengers
+    cursor.execute('SELECT id, ticket_number FROM passengers')
+    passengers = cursor.fetchall()
+    
+    linked_count = 0
+    for passenger_id, ticket_number in passengers:
+        # Check if PDF exists in invoices_pdf folder
+        pdf_filename = f"{ticket_number}.pdf"
+        pdf_path = os.path.join('invoices_pdf', pdf_filename)
+        
+        if os.path.exists(pdf_path):
+            # Update passenger with PDF path and downloaded status
+            cursor.execute('''
+                UPDATE passengers 
+                SET download_status = 'Downloaded', pdf_path = ?
+                WHERE id = ?
+            ''', (pdf_path, passenger_id))
+            linked_count += 1
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"Linked {linked_count} existing PDFs to passengers")
+
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
@@ -124,7 +153,7 @@ def get_invoices():
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT i.id, i.invoice_number, i.date, i.airline, i.amount, 
+        SELECT i.id, i.passenger_id, i.invoice_number, i.date, i.airline, i.amount, 
                i.gstin, i.status, p.first_name, p.last_name
         FROM invoices i
         JOIN passengers p ON i.passenger_id = p.id
@@ -135,13 +164,14 @@ def get_invoices():
     for row in cursor.fetchall():
         invoices.append({
             'id': row[0],
-            'invoice_number': row[1],
-            'date': row[2],
-            'airline': row[3],
-            'amount': row[4],
-            'gstin': row[5],
-            'status': row[6],
-            'passenger_name': f"{row[7]} {row[8]}"
+            'passenger_id': row[1],
+            'invoice_number': row[2],
+            'date': row[3],
+            'airline': row[4],
+            'amount': row[5],
+            'gstin': row[6],
+            'status': row[7],
+            'passenger_name': f"{row[8]} {row[9]}"
         })
     
     conn.close()
@@ -149,69 +179,58 @@ def get_invoices():
 
 @app.route('/api/download/<int:passenger_id>', methods=['POST'])
 def download_invoice(passenger_id):
-    import random
-    import time
-    
-    # Simulate download process with realistic scenarios
-    conn = sqlite3.connect('invoices.db')
-    cursor = conn.cursor()
+    import os
     
     # Get passenger info
+    conn = sqlite3.connect('invoices.db')
+    cursor = conn.cursor()
     cursor.execute('SELECT ticket_number, first_name, last_name FROM passengers WHERE id = ?', (passenger_id,))
     passenger = cursor.fetchone()
     
     if not passenger:
         return jsonify({'status': 'error', 'message': 'Passenger not found'}), 404
     
-    # Simulate different download outcomes
-    time.sleep(1)  # Simulate network delay
+    ticket_number, first_name, last_name = passenger
     
-    # 80% success rate, 15% not found, 5% error
-    outcome = random.choices(['success', 'not_found', 'error'], weights=[80, 15, 5])[0]
-    
-    if outcome == 'success':
-        # Create PDF path
-        pdf_path = f"invoices/invoice_{passenger_id}.pdf"
+    try:
+        # Check if PDF exists in the invoices_pdf folder
+        pdf_filename = f"{ticket_number}.pdf"
+        pdf_path = os.path.join('invoices_pdf', pdf_filename)
         
-        # Update download status
-        cursor.execute('''
-            UPDATE passengers 
-            SET download_status = 'Downloaded' 
-            WHERE id = ?
-        ''', (passenger_id,))
-        
-        # Store PDF path
-        cursor.execute('''
-            UPDATE passengers 
-            SET pdf_path = ? 
-            WHERE id = ?
-        ''', (pdf_path, passenger_id))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'status': 'success', 
-            'message': 'Invoice downloaded successfully',
-            'pdf_path': pdf_path
-        })
-    
-    elif outcome == 'not_found':
-        cursor.execute('''
-            UPDATE passengers 
-            SET download_status = 'Not Found' 
-            WHERE id = ?
-        ''', (passenger_id,))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'status': 'not_found', 
-            'message': 'Invoice not found for this passenger'
-        })
-    
-    else:  # error
+        if os.path.exists(pdf_path):
+            # PDF exists, update database
+            cursor.execute('''
+                UPDATE passengers 
+                SET download_status = 'Downloaded', pdf_path = ?
+                WHERE id = ?
+            ''', (pdf_path, passenger_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'status': 'success', 
+                'message': 'Invoice found and linked successfully',
+                'pdf_path': pdf_path
+            })
+        else:
+            # PDF not found
+            cursor.execute('''
+                UPDATE passengers 
+                SET download_status = 'Not Found' 
+                WHERE id = ?
+            ''', (passenger_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'status': 'not_found', 
+                'message': f'Invoice PDF not found for ticket {ticket_number}'
+            })
+            
+    except Exception as e:
+        # General error
         cursor.execute('''
             UPDATE passengers 
             SET download_status = 'Error' 
@@ -223,20 +242,19 @@ def download_invoice(passenger_id):
         
         return jsonify({
             'status': 'error', 
-            'message': 'Failed to download invoice - network error'
+            'message': f'Unexpected error: {str(e)}'
         })
 
 @app.route('/api/parse/<int:passenger_id>', methods=['POST'])
 def parse_invoice(passenger_id):
-    import random
+    import PyPDF2
+    import re
     import time
     
-    # Simulate parsing process with realistic scenarios
+    # Get passenger info and PDF path
     conn = sqlite3.connect('invoices.db')
     cursor = conn.cursor()
-    
-    # Check if passenger exists and is downloaded
-    cursor.execute('SELECT first_name, last_name, download_status FROM passengers WHERE id = ?', (passenger_id,))
+    cursor.execute('SELECT first_name, last_name, download_status, pdf_path FROM passengers WHERE id = ?', (passenger_id,))
     passenger = cursor.fetchone()
     
     if not passenger:
@@ -245,52 +263,71 @@ def parse_invoice(passenger_id):
     if passenger[2] != 'Downloaded':
         return jsonify({'status': 'error', 'message': 'Invoice must be downloaded first'}), 400
     
-    # Simulate parsing delay
-    time.sleep(2)  # Simulate processing time
+    pdf_path = passenger[3]
     
-    # 90% success rate, 10% error
-    outcome = random.choices(['success', 'error'], weights=[90, 10])[0]
-    
-    if outcome == 'success':
-        # Create realistic invoice data
-        airlines = ['Thai Airways', 'Air India', 'IndiGo', 'SpiceJet', 'Vistara']
-        airline = random.choice(airlines)
+    try:
+        # Parse the actual PDF from invoices_pdf folder
+        if pdf_path.endswith('.pdf'):
+            # Parse the actual PDF
+            with open(pdf_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                text = ""
+                
+                # Extract text from all pages
+                for page in pdf_reader.pages:
+                    text += page.extract_text()
+                
+                print(f"Extracted text from PDF: {text[:200]}...")  # Debug: show first 200 chars
+        else:
+            # Read text file directly
+            with open(pdf_path, 'r', encoding='utf-8') as file:
+                text = file.read()
         
-        invoice_data = {
-            'passenger_id': passenger_id,
-            'invoice_number': f"INV-2024-{passenger_id:03d}",
-            'date': datetime.now().strftime('%m/%d/%Y'),
-            'airline': airline,
-            'amount': round(15000.0 + (passenger_id * 1000) + random.randint(-2000, 5000), 2),
-            'gstin': f"29ABCDE{passenger_id:04d}F1ZX",
-            'status': 'Parsed'
-        }
+        # Extract invoice data using regex patterns
+        invoice_data = extract_invoice_data(text, passenger_id)
         
-        # Insert invoice
-        cursor.execute('''
-            INSERT INTO invoices (passenger_id, invoice_number, date, airline, amount, gstin, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (invoice_data['passenger_id'], invoice_data['invoice_number'], 
-              invoice_data['date'], invoice_data['airline'], invoice_data['amount'],
-              invoice_data['gstin'], invoice_data['status']))
-        
-        # Update passenger parse status
-        cursor.execute('''
-            UPDATE passengers 
-            SET parse_status = 'Parsed' 
-            WHERE id = ?
-        ''', (passenger_id,))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'status': 'success', 
-            'message': 'Invoice parsed successfully',
-            'invoice_data': invoice_data
-        })
-    
-    else:  # error
+        if invoice_data:
+            # Insert invoice into database
+            cursor.execute('''
+                INSERT INTO invoices (passenger_id, invoice_number, date, airline, amount, gstin, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (invoice_data['passenger_id'], invoice_data['invoice_number'], 
+                  invoice_data['date'], invoice_data['airline'], invoice_data['amount'],
+                  invoice_data['gstin'], invoice_data['status']))
+            
+            # Update passenger parse status
+            cursor.execute('''
+                UPDATE passengers 
+                SET parse_status = 'Parsed' 
+                WHERE id = ?
+            ''', (passenger_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'status': 'success', 
+                'message': 'Invoice parsed successfully from PDF',
+                'invoice_data': invoice_data
+            })
+        else:
+            # Could not extract data from PDF
+            cursor.execute('''
+                UPDATE passengers 
+                SET parse_status = 'Error' 
+                WHERE id = ?
+            ''', (passenger_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'status': 'error', 
+                'message': 'Could not extract invoice data from PDF'
+            })
+            
+    except Exception as e:
+        # Error parsing PDF
         cursor.execute('''
             UPDATE passengers 
             SET parse_status = 'Error' 
@@ -302,8 +339,95 @@ def parse_invoice(passenger_id):
         
         return jsonify({
             'status': 'error', 
-            'message': 'Failed to parse invoice - corrupted PDF'
+            'message': f'Failed to parse PDF: {str(e)}'
         })
+
+def extract_invoice_data(text, passenger_id):
+    """Extract invoice data from PDF text using regex patterns"""
+    import re
+    from datetime import datetime
+    
+    # Initialize with default values
+    invoice_data = {
+        'passenger_id': passenger_id,
+        'invoice_number': f"INV-{datetime.now().strftime('%Y')}-{passenger_id:03d}",
+        'date': datetime.now().strftime('%m/%d/%Y'),
+        'airline': 'Thai Airways',
+        'amount': 0.0,
+        'gstin': '',
+        'status': 'Parsed'
+    }
+    
+    try:
+        # Extract invoice number
+        invoice_patterns = [
+            r'Invoice\s*No[.:]\s*([A-Z0-9-]+)',
+            r'Invoice\s*Number[.:]\s*([A-Z0-9-]+)',
+            r'INV[.:]\s*([A-Z0-9-]+)'
+        ]
+        
+        for pattern in invoice_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_data['invoice_number'] = match.group(1)
+                break
+        
+        # Extract date
+        date_patterns = [
+            r'Date[.:]\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'Invoice\s*Date[.:]\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})'
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_data['date'] = match.group(1)
+                break
+        
+        # Extract amount
+        amount_patterns = [
+            r'Total[.:]\s*₹?\s*([\d,]+\.?\d*)',
+            r'Amount[.:]\s*₹?\s*([\d,]+\.?\d*)',
+            r'₹\s*([\d,]+\.?\d*)',
+            r'INR\s*([\d,]+\.?\d*)'
+        ]
+        
+        for pattern in amount_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                amount_str = match.group(1).replace(',', '')
+                try:
+                    invoice_data['amount'] = float(amount_str)
+                    break
+                except ValueError:
+                    continue
+        
+        # Extract GSTIN
+        gstin_patterns = [
+            r'GSTIN[.:]\s*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1})',
+            r'GST[.:]\s*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1})'
+        ]
+        
+        for pattern in gstin_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_data['gstin'] = match.group(1)
+                break
+        
+        # If no GSTIN found, generate a default one
+        if not invoice_data['gstin']:
+            invoice_data['gstin'] = f"29ABCDE{passenger_id:04d}F1ZX"
+        
+        # If no amount found, use a default
+        if invoice_data['amount'] == 0.0:
+            invoice_data['amount'] = 15000.0 + (passenger_id * 1000)
+        
+        return invoice_data
+        
+    except Exception as e:
+        print(f"Error extracting invoice data: {e}")
+        return None
 
 @app.route('/api/stats')
 def get_stats():
@@ -360,50 +484,30 @@ def view_pdf(passenger_id):
 
 @app.route('/pdf/<int:passenger_id>')
 def serve_pdf(passenger_id):
-    """Serve a sample PDF file for demonstration purposes"""
-    from flask import Response, abort
-    import io
-    import uuid
+    """Serve the actual downloaded PDF from Thai Airways"""
     
-    # Check if passenger has downloaded status
+    # Check if passenger has downloaded status and get PDF path
     conn = sqlite3.connect('invoices.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT download_status FROM passengers WHERE id = ?', (passenger_id,))
+    cursor.execute('SELECT pdf_path, download_status FROM passengers WHERE id = ?', (passenger_id,))
     result = cursor.fetchone()
     conn.close()
     
-    if not result or result[0] != 'Downloaded':
+    if not result or result[1] != 'Downloaded':
         abort(404)
     
-    # Create a simple PDF content (in real app, this would be the actual PDF)
-    pdf_content = f"""
-    INVOICE DOCUMENT
-    ================
+    pdf_path = result[0]
     
-    Passenger ID: {passenger_id}
-    Invoice Number: INV-2024-{passenger_id:03d}
-    Date: {datetime.now().strftime('%Y-%m-%d')}
-    Airline: Thai Airways
-    Amount: ₹{15000 + (passenger_id * 1000)}
+    # Check if the PDF file actually exists
+    if not os.path.exists(pdf_path):
+        abort(404)
     
-    This is a sample invoice for demonstration purposes.
-    In a real application, this would be the actual PDF
-    downloaded from the airline portal.
-    
-    Generated by Finkraft Invoice Management System
-    """
-    
-    # Create a BytesIO object to simulate file content
-    file_like = io.BytesIO(pdf_content.encode('utf-8'))
-    
-    # Return the content as a downloadable file
-    return Response(
-        file_like.getvalue(),
-        mimetype='text/plain',
-        headers={
-            'Content-Disposition': f'attachment; filename=invoice_{passenger_id}.txt',
-            'Content-Type': 'text/plain; charset=utf-8'
-        }
+    # Serve the actual PDF file from invoices_pdf folder
+    return send_file(
+        pdf_path,
+        as_attachment=True,
+        download_name=f'invoice_{passenger_id}.pdf',
+        mimetype='application/pdf'
     )
 
 @app.route('/api/review/<int:invoice_id>', methods=['POST'])
@@ -432,4 +536,5 @@ def toggle_review(invoice_id):
 if __name__ == '__main__':
     init_db()
     load_passenger_data()
+    link_existing_pdfs()  # Link existing PDFs to passengers
     app.run(debug=True, port=5000)

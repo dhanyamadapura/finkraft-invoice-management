@@ -1038,7 +1038,7 @@
                 // Create a hidden link and trigger download
                 const link = document.createElement('a');
                 link.href = `/pdf/${passengerId}`;
-                link.download = `invoice_${passengerId}.txt`;
+                link.download = `invoice_${passengerId}.pdf`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);

@@ -62,7 +62,7 @@ invoice-management-dashboard/
 ### **Download Process**
 screenshort\download and parsed ivoices overview .png
 ![Download Process](screenshorts\download and parsed ivoices overview .png)
-*Interactive download workflow with status updates*
+*Interactive download and invoice  workflow with status updates*
 
 
 

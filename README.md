@@ -53,6 +53,19 @@ invoice-management-dashboard/
 └── README.md            # Project documentation
 ```
 
+## 📸 Screenshots
+
+### **Dashboard Overview**
+![Dashboard](screenshots/dashboard-overview.png)
+*Main dashboard showing passenger records and statistics*
+
+### **Download Process**
+screenshort\download and parsed ivoices overview .png
+![Download Process](screenshorts\download and parsed ivoices overview .png)
+*Interactive download workflow with status updates*
+
+
+
 ## 🚀 Quick Start
 
 ### **Prerequisites**
@@ -211,16 +224,11 @@ python app.py
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 👨‍💻 Author
 
 **Dhanya Madhapura**
-- GitHub: [@dhanyamadhapura](https://github.com/dhanyamadhapura)
-- LinkedIn: [Dhanya Madhapura](https://linkedin.com/in/dhanya-madhapura)
-- Email: dhanya.madhapura@email.com
+- LinkedIn: [Dhanya Madhapura](www.linkedin.com/in/dhanya-m-a-52453524b)
+- Email: dhanyamadapura26@email.com
 
 ## 🙏 Acknowledgments
 
